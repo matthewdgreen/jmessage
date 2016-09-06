@@ -15,6 +15,8 @@
 
 package msgclient;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Scanner;
 import org.apache.commons.cli.*;
 
@@ -89,15 +91,49 @@ public class MsgClient {
 		System.out.println("   get (or empty line)  - check for new messages");
 		System.out.println("   c(ompose) <user>     - compose a message to <user>");
 		System.out.println("   f(ingerprint) <user> - return the key fingerprint of <user>");
-		System.out.println("   genkeys              - generates and registers a new keypair");
+		System.out.println("   genkeys              - generates and registers a fresh keypair");
 		System.out.println("   h(elp)               - prints this listing");
 		System.out.println("   q(uit)               - exits");
+	}
+	
+	public void printMessage(long sentTime, String senderID, String decryptedText) {
+		System.out.println("From: " + senderID);
+		System.out.println("Time: " + sentTime);
+		System.out.println(decryptedText);
+		System.out.println("");
 	}
 	
 	// Get messages from the server
 	public void getMessages() throws Exception {
 		System.out.println("Getting messages from server...");
-		// TODO
+		
+		// Call the server to get recent mail
+		ArrayList<EncryptedMessage> messages = mServerConnection.lookupMessages();
+		
+		if (messages == null) {
+			System.out.println("Invalid response from server");
+			return;
+		}
+		
+		// Decrypt and process each message
+		if (messages == null || messages.isEmpty()) {
+			System.out.println("No new messages.");
+		} else {
+			Iterator<EncryptedMessage> iterator = messages.iterator();
+			while (iterator.hasNext()) {
+				EncryptedMessage nextMessage = iterator.next();
+				
+				// We need to get the sender's public key
+				MsgKeyPair senderKey = mServerConnection.lookupKey(nextMessage.getSenderID());
+				if (senderKey != null) {
+					String decryptedText = mEncryptor.decryptMessage(nextMessage.getMessageText(), 
+						nextMessage.getSenderID(), senderKey);
+						printMessage(nextMessage.getSentTime(), nextMessage.getSenderID(), decryptedText);
+				} else {
+					System.out.println("Could not get keys for " + nextMessage.getSenderID());
+				}
+			}
+		}
 	}
 	
 	// Compose a new message
@@ -148,7 +184,7 @@ public class MsgClient {
 		
 		// Print our fingerprint and the user's fingerprint
 		System.out.println("Your key fingerprint: ");
-		System.out.println(MessageEncryptor.computeFingerprint(mEncryptor.getEncodedPublicKeys()));
+		System.out.println(mEncryptor.getKeyFingerprint());
 		
 		if (recipientKey != null) {
 			System.out.println("Fingerprint for user " + recipient + ":");
@@ -201,6 +237,8 @@ public class MsgClient {
 				printHelp();
 			} else if (parsedString[0].startsWith("q")) {
 				running = false;
+			} else if (parsedString[0].startsWith("genkeys")) {
+				registerKeys(true);
 			}
 			
 			//System.out.println(command);
@@ -213,8 +251,13 @@ public class MsgClient {
 		
 		// Create an encryption class and a server connection class
 		mEncryptor = new MessageEncryptor(serverUsername);
-		mServerConnection = new ServerConnection(serverName, serverPort, serverUsername, serverPassword);
-		mServerConnection.connectToServer();
+		try {
+			mServerConnection = new ServerConnection(serverName, serverPort, serverUsername, serverPassword);
+			mServerConnection.connectToServer();
+		} catch (Exception e) {
+			System.out.println("Could not connect to server.");
+			System.exit(1);
+		}
 		
 		// Run an encryption test
 		if (TestEncryption.testEncryption("Test message") == false) {
@@ -225,7 +268,7 @@ public class MsgClient {
 		registerKeys(false);
 		
 		// All tests and registration complete
-		System.out.println("Server connection successful. Ready to begin.");
+		System.out.println("Server connection successful. Type (h)elp for commands.");
 		
 		// With a server connection, start the main loop
 		mainLoop();

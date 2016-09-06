@@ -121,31 +121,40 @@ public class ServerConnection {
 		return result;
 	}
 	
-	public ArrayList<EncryptedMessage> lookupMessages(String myID) {
+	public ArrayList<EncryptedMessage> lookupMessages() {
 		ArrayList<EncryptedMessage> result = new ArrayList<EncryptedMessage>();
 		
 		// TODO, need to specify requestor ID here!
 		JSONObject jsonObject = makeGetToServer(MESSAGELOOKUP_PATH);
-        long numMessages = (long) jsonObject.get("numMessages");
-        if (numMessages <= 0) {
-        	return null;
-        }
+		if (jsonObject == null) {
+			return null;
+		}
+		
+		try {
+			long numMessages = (long) jsonObject.get("numMessages");
+			if (numMessages <= 0) {
+				return null;
+			}
 
-        JSONArray msg = (JSONArray) jsonObject.get("messages");
-		Iterator<JSONObject> iterator = msg.iterator();
-		while (iterator.hasNext()) {
-			JSONObject nextMessage = iterator.next();
-			long sentTime = (long) nextMessage.get("sentTime");
-			String encryptedMessage = (String) nextMessage.get("message");
-			String fromID = (String) nextMessage.get("senderID");
+			JSONArray msg = (JSONArray) jsonObject.get("messages");
+			Iterator<JSONObject> iterator = msg.iterator();
+			while (iterator.hasNext()) {
+				JSONObject nextMessage = iterator.next();
+				long sentTime = (long) nextMessage.get("sentTime");
+				String encryptedMessage = (String) nextMessage.get("message");
+				String fromID = (String) nextMessage.get("senderID");
 			
-			if (encryptedMessage != null) {
-				if (encryptedMessage.trim().isEmpty() == false) {		
-					EncryptedMessage eMsg = new EncryptedMessage(fromID.trim(), myID.trim(), 
-							encryptedMessage.trim(), sentTime);
-					result.add(eMsg);
+				if (encryptedMessage != null) {
+					if (encryptedMessage.trim().isEmpty() == false) {		
+						EncryptedMessage eMsg = new EncryptedMessage(fromID.trim(), mUsername.trim(), 
+								encryptedMessage.trim(), sentTime);
+						result.add(eMsg);
+					}
 				}
 			}
+		} catch (Exception e) {
+			// Some kind of problem
+			return null;
 		}
         
 		// Return the resulting list

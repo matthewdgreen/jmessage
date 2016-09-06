@@ -270,6 +270,10 @@ public class MessageEncryptor {
 		return mOurKeys.getEncodedPubKey();
 	}
 	
+	public String getKeyFingerprint() {
+		return MessageEncryptor.computeFingerprint(getEncodedPublicKeys());
+	}
+	
 	static public String computeFingerprint(String encodedPublicKey) {
 		MessageDigest digest;
 		try {
