@@ -157,10 +157,15 @@ public class MsgClient {
 	}
 	
 	// Generates a MsgKeyPair, registers it with server
-	public void registerKeys() throws Exception {
-		//System.out.println("Generating new MsgKeyPair...");
+	public void registerKeys(boolean regenerate) throws Exception {
+		// Regenerate our key pair if we're asked to
+		if (regenerate == true) {
+			System.out.println("Generating a new keypair...");
+			mEncryptor.regenerateKeys();
+		}
 		
-		// TODO
+		// Send the public keys to the server
+		mServerConnection.registerKey(mEncryptor.getEncodedPublicKeys());
 	}
 	
 	public void mainLoop() throws Exception {
@@ -217,7 +222,7 @@ public class MsgClient {
 		}
 		
 		// Register our public keys
-		registerKeys();
+		registerKeys(false);
 		
 		// All tests and registration complete
 		System.out.println("Server connection successful. Ready to begin.");

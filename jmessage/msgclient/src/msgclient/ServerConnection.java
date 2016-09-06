@@ -152,9 +152,7 @@ public class ServerConnection {
 		return result;
 	}
 	
-	public boolean registerKey(String senderID, MsgKeyPair senderKey) {
-		String encodedKey = senderKey.getEncodedPubKey();
-		
+	public boolean registerKey(String encodedKey) {		
 		// TODO: Actually send the key to the server somehow right here!
 		
 		JSONObject jsonObject = makeGetToServer(KEYREGISTER_PATH);

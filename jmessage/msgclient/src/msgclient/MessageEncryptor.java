@@ -49,6 +49,10 @@ public class MessageEncryptor {
 		mSenderID = senderID;
 	}
 	
+	public void regenerateKeys() throws Exception {
+		mOurKeys.generateKeyPair();
+	}
+	
 	// Encrypt a given message under the recipient key
 	// Steps are:
 	// 1. Concatenate sender ID : message string, encode as UTF-8
