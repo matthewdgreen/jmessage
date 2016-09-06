@@ -1,0 +1,112 @@
+package msgclient;
+
+import java.security.*;
+import java.security.spec.*;
+import java.security.spec.X509EncodedKeySpec;
+
+public class MsgKeyPair {
+
+	static final String PUBKEY_DELIMITER = "%";
+	
+	KeyPair mRSAKeys = null;
+	KeyPair mDSAKeys = null;
+	boolean mHasPrivate = false;
+	
+	public void setPublicKey(String encodedPubKey) throws Exception {
+		// Parse the key as RSA || DELIMITER CHAR || DSA
+		String[] parsedKeys = encodedPubKey.trim().split(PUBKEY_DELIMITER);
+		if (parsedKeys.length < 2 || parsedKeys[0].length() < 100 || parsedKeys[1].length() < 100) {
+			throw new Exception();
+		}
+		
+		// Decode the RSA public key
+		KeyFactory keyFactoryRSA = KeyFactory.getInstance("RSA");
+        EncodedKeySpec publicKeySpecRSA = new X509EncodedKeySpec(parsedKeys[0].getBytes());
+        PublicKey publicKeyRSA = keyFactoryRSA.generatePublic(publicKeySpecRSA);
+		
+        // Decode the DSA public key
+		KeyFactory keyFactoryDSA = KeyFactory.getInstance("DSA");
+        EncodedKeySpec publicKeySpecDSA = new X509EncodedKeySpec(parsedKeys[1].getBytes());
+        PublicKey publicKeyDSA = keyFactoryDSA.generatePublic(publicKeySpecDSA);
+		
+        // TODO: convert these to a keypair and store them
+        // TODO: the hex encoding here is not right
+        
+        mHasPrivate = false;
+	}
+	
+	public void generateKeyPair() throws Exception {
+		// Generate a 1024-bit RSA keypair
+		KeyPairGenerator keyGenRSA = KeyPairGenerator.getInstance("RSA");
+		keyGenRSA.initialize(1024);
+		
+		// Store the resulting RSA keypair
+		mRSAKeys = keyGenRSA.genKeyPair();
+
+        // Generate a 1024-bit DSA keypair
+        KeyPairGenerator keyGenDSA = KeyPairGenerator.getInstance("DSA");
+        keyGenDSA.initialize(1024);
+        
+        // Store the resulting DSA keypair
+        mDSAKeys = keyGenDSA.genKeyPair();
+        mHasPrivate = true;
+        
+        // Print the encoded public key out as a test
+        System.out.print("Public key is: ");
+        System.out.println(getEncodedPubKey());
+	}
+	
+	// Returns the two public keys encoded as a single string
+	public String getEncodedPubKey() {
+        StringBuffer hexPublicKey = new StringBuffer();
+
+		// Get the RSA public key and encode into hex. Add to hexPublicKey.
+        byte[] rsaPublicKey = mRSAKeys.getPublic().getEncoded();
+        for (int i = 0; i < rsaPublicKey.length; ++i) {
+        	hexPublicKey.append(Integer.toHexString(0x0100 + (rsaPublicKey[i] & 0x00FF)).substring(1));
+        }
+        
+        // Add a (non-hex) delimiter between the two public keys
+        hexPublicKey.append(PUBKEY_DELIMITER);
+        
+		// Get the DSA public key and encode into hex. Add to hexPublicKey.
+        byte[] dsaPublicKey = mDSAKeys.getPublic().getEncoded();
+        for (int i = 0; i < dsaPublicKey.length; ++i) {
+        	hexPublicKey.append(Integer.toHexString(0x0100 + (dsaPublicKey[i] & 0x00FF)).substring(1));
+        }
+        
+        return hexPublicKey.toString();
+	}
+	
+	// Get the RSA public key if there is one
+	public Key getRSAPublicKey() {
+		if (mRSAKeys == null) {
+			return null;
+		}
+		
+		return mRSAKeys.getPublic();
+	}
+	
+	// Get the DSA private key if there is one
+	public Key getRSAPrivateKey() {
+		if (mRSAKeys == null) {
+			return null;
+		}
+		
+		return mRSAKeys.getPublic();
+	}
+	
+	// Check that this class contains valid public keys
+	public boolean isValidForSending() {
+		if (mRSAKeys != null) {
+			return true;
+		} else { 
+			return false;
+		}
+	}
+	
+	public void loadKeysFromFile(String secretKeyFile) {
+		// TODO. Not implemented yet
+	}
+	
+}

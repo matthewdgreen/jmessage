@@ -1,0 +1,7 @@
+package msgclient;
+
+public class EncryptedMessage {
+	String senderID;
+	String receiverID;
+	String messageText;
+}

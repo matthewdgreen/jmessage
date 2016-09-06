@@ -1,0 +1,13 @@
+package msgclient;
+
+public class EncryptedMessage {
+	String mSenderID;
+	String mReceiverID;
+	String mMessageText;
+	
+	public EncryptedMessage(String senderID, String receiverID, String messageText) {
+		this.mSenderID = senderID;
+		this.mReceiverID = receiverID;
+		this.mMessageText = messageText;
+	}
+}

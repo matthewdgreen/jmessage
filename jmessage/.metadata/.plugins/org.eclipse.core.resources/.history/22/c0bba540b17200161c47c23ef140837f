@@ -1,0 +1,27 @@
+package msgclient;
+
+import java.security.*;
+
+public class KeyPair {
+
+	public void generateKeyPair() throws Exception {
+		// Generate a 1024-bit RSA keypair
+		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+		keyGen.initialize(1024);
+		
+		// Get the public key (encoded using what?)
+        byte[] rsaPublicKey = keyGen.genKeyPair().getPublic().getEncoded();
+        StringBuffer hexPublicKey = new StringBuffer();
+        for (int i = 0; i < rsaPublicKey.length; ++i) {
+        	hexPublicKey.append(Integer.toHexString(0x0100 + (rsaPublicKey[i] & 0x00FF)).substring(1));
+        }
+        
+        // Print it out as a test
+        System.out.println(hexPublicKey);
+	}
+	
+	public void loadKeysFromFile(String secretKeyFile) {
+		// TODO. Not implemented yet
+	}
+	
+}

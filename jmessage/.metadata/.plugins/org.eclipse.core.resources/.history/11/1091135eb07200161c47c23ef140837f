@@ -1,0 +1,5 @@
+package msgclient;
+
+public class KeyPair {
+
+}

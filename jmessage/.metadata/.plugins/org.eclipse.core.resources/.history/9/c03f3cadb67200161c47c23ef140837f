@@ -1,0 +1,71 @@
+package msgclient;
+
+import java.security.*;
+
+public class MsgKeyPair {
+
+	static final String PUBKEY_DELIMITER = "%";
+	
+	KeyPair mRSAKeys = null;
+	KeyPair mDSAKeys = null;
+	
+	public void setPublicKey(String encodedPubKey) throws Exception {
+		// Parse the key as RSA || DELIMITER CHAR || DSA
+		String[] parsedKeys = encodedPubKey.trim().split(PUBKEY_DELIMITER);
+		if (parsedKeys.length < 2 || parsedKeys[0].length() < 100 || parsedKeys[1].length() < 100) {
+			throw new Exception();
+		}
+		
+		// Now decode the RSA public key
+        EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(parsedKeys[0]);
+        PublicKey publicKey2 = keyFactory.generatePublic(publicKeySpec);
+		
+	}
+	
+	public void generateKeyPair() throws Exception {
+		// Generate a 1024-bit RSA keypair
+		KeyPairGenerator keyGenRSA = KeyPairGenerator.getInstance("RSA");
+		keyGenRSA.initialize(1024);
+		
+		// Store the resulting RSA keypair
+		mRSAKeys = keyGenRSA.genKeyPair();
+
+        // Generate a 1024-bit DSA keypair
+        KeyPairGenerator keyGenDSA = KeyPairGenerator.getInstance("DSA");
+        keyGenDSA.initialize(1024);
+        
+        // Store the resulting DSA keypair
+        mDSAKeys = keyGenDSA.genKeyPair();
+        
+        // Print the encoded public key out as a test
+        System.out.print("Public key is: ");
+        System.out.println(getEncodedPubKey());
+	}
+	
+	// Returns the two public keys encoded as a string
+	public String getEncodedPubKey() {
+        StringBuffer hexPublicKey = new StringBuffer();
+
+		// Get the RSA public key and encode into hex. Add to hexPublicKey.
+        byte[] rsaPublicKey = mRSAKeys.getPublic().getEncoded();
+        for (int i = 0; i < rsaPublicKey.length; ++i) {
+        	hexPublicKey.append(Integer.toHexString(0x0100 + (rsaPublicKey[i] & 0x00FF)).substring(1));
+        }
+        
+        // Add a (non-hex) delimiter between the two public keys
+        hexPublicKey.append(PUBKEY_DELIMITER);
+        
+		// Get the DSA public key and encode into hex. Add to hexPublicKey.
+        byte[] dsaPublicKey = mDSAKeys.getPublic().getEncoded();
+        for (int i = 0; i < dsaPublicKey.length; ++i) {
+        	hexPublicKey.append(Integer.toHexString(0x0100 + (dsaPublicKey[i] & 0x00FF)).substring(1));
+        }
+        
+        return hexPublicKey.toString();
+	}
+	
+	public void loadKeysFromFile(String secretKeyFile) {
+		// TODO. Not implemented yet
+	}
+	
+}

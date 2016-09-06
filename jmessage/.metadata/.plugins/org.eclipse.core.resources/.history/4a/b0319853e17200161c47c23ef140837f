@@ -1,0 +1,10 @@
+package msgclient;
+
+public class TestEncryption {
+	static boolean testEncryption(MessageEncryptor encryptor, String message, String recipientID, MsgKeyPair recipientKey) {
+		// Encrypt the message
+		String encryptedMsg = encryptMessage(String message, MsgKeyPair recipientKey) {
+
+		
+	}
+}

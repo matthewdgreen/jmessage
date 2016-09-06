@@ -1,0 +1,7 @@
+package msgclient;
+
+public class TestEncryption {
+	static testEncryption(String message, String recipientID, MsgKeyPair recipientKey) {
+		
+	}
+}
