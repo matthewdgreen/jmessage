@@ -141,13 +141,14 @@ public class ServerConnection {
 			while (iterator.hasNext()) {
 				JSONObject nextMessage = iterator.next();
 				long sentTime = (long) nextMessage.get("sentTime");
+				long messageID = (long) nextMessage.get("messageID");
 				String encryptedMessage = (String) nextMessage.get("message");
 				String fromID = (String) nextMessage.get("senderID");
 			
 				if (encryptedMessage != null) {
 					if (encryptedMessage.trim().isEmpty() == false) {		
 						EncryptedMessage eMsg = new EncryptedMessage(fromID.trim(), mUsername.trim(), 
-								encryptedMessage.trim(), sentTime);
+								encryptedMessage.trim(), sentTime, messageID);
 						result.add(eMsg);
 					}
 				}
