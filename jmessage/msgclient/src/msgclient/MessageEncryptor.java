@@ -161,14 +161,14 @@ public class MessageEncryptor {
 			System.out.println("Error: invalid keys");
 			return null;
 		}
-		
+
 		// First, parse the input ciphertext into three substrings
 		// (RSA Ciphertext, AES ciphertext, Signature)
 		String[] parsedString = ciphertext.trim().split(CIPHERTEXT_DELIMITER);
 		if (parsedString.length != 3) {
 			return null;
 		}
-		
+
 		// Decode the signature and verify it against the first
 		// two encoded strings
 	    try {
@@ -207,7 +207,7 @@ public class MessageEncryptor {
 	    } catch (Exception e) {
 			return null; 
 		}
-	    
+
 	    // Use the resulting AES key to instantiate an AES cipher
 	    // and decrypt the payload
 	    Cipher aesCipher;

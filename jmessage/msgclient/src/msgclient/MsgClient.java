@@ -162,9 +162,13 @@ public class MsgClient {
 				System.out.println("Error encrypting message.");
 			} else {
 				// Send the encrypted message
-				mServerConnection.sendEncryptedMessage(recipient, encryptedMessage);
+				boolean result = mServerConnection.sendEncryptedMessage(recipient, encryptedMessage);
 				
-				System.out.println("Message sent.");
+				if (result) {
+					System.out.println("Message sent.");
+				} else {
+					System.out.println("Failed to send.");
+				}
 			}
 		} 
 	}
@@ -264,8 +268,9 @@ public class MsgClient {
 			System.out.println("Encryption self-test failed.");
 		}
 		
-		// Register our public keys
-		registerKeys(false);
+		
+//			// Register our public keys
+//			registerKeys(false);
 		
 		// All tests and registration complete
 		System.out.println("Server connection successful. Type (h)elp for commands.");

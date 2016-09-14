@@ -17,9 +17,15 @@ package msgclient;
 
 import org.apache.http.impl.client.*;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.commons.io.IOUtils;
 import java.net.URI;
 import java.io.IOException;
@@ -40,7 +46,8 @@ public class ServerConnection {
 	static final String KEYLOOKUP_PATH = "/lookupKey";
 	static final String MESSAGELOOKUP_PATH = "/getMessages";
 	static final String KEYREGISTER_PATH = "/registerKey";
-	static final String RESPONSE_KEYDATA = "keyData";
+	static final String SENDMESSAGE_PATH = "/sendMessage";
+	static final String RESPONSE_KEYDATA = "keyData";	
 
 	String mServerName;
 	String mUsername;
@@ -67,14 +74,12 @@ public class ServerConnection {
 			// Create a URI	         
 			URI uri = new URIBuilder()
 			        .setScheme(PROTOCOL_TYPE)
-			        .setHost("jsonplaceholder.typicode.com")
-			        .setPath("/posts/1")
-			        //.setHost(mServerName)
-			        //.setPath(path)
+			        .setHost(mServerName + ":" + mPort)
+			        .setPath(path)
 			        .build();
 	        HttpGet httpget = new HttpGet(uri);
 	        httpget.addHeader("accept", "application/json");
-	        //System.out.println(httpget.getURI());
+	        System.out.println(httpget.getURI());
 
 	        response = httpClient.execute(httpget);
             if (response.getStatusLine().getStatusCode() == 200) {           
@@ -83,7 +88,7 @@ public class ServerConnection {
             	Object obj = parser.parse(jsonData);
             	jsonObject = (JSONObject) obj;
             } else {
-            	System.out.println("Received status code " + response.getStatusLine().getStatusCode() + "from server");
+            	System.out.println("Received status code " + response.getStatusLine().getStatusCode() + " from server");
             }
             
 	        response.close();
@@ -96,14 +101,55 @@ public class ServerConnection {
 		return jsonObject;
 	}
 	
+	public JSONObject makePostToServer(String path, String json_data) {
+		CloseableHttpResponse response;
+		JSONObject jsonObject = null;
+		
+		// Send a POST request to the server
+		try (CloseableHttpClient httpClient = HttpClientBuilder.create().build()) {
+			// Create a URI	         
+			URI uri = new URIBuilder()
+			        .setScheme(PROTOCOL_TYPE)
+			        .setHost(mServerName + ":" + mPort)
+			        .setPath(path)
+			        .build();
+			HttpPost httppost = new HttpPost(uri);
+	        System.out.println(httppost.getURI());
+	        StringEntity entity = new StringEntity(json_data, ContentType.create("plain/text", "UTF-8"));
+	        entity.setContentType("application/json");
+	        httppost.setEntity(entity);
+	        
+	        response = httpClient.execute(httppost);
+            if (response.getStatusLine().getStatusCode() == 200) {           
+            	String jsonData = IOUtils.toString(response.getEntity().getContent());
+            	JSONParser parser = new JSONParser();
+            	Object obj = parser.parse(jsonData);
+            	jsonObject = (JSONObject) obj;
+            } else {
+            	System.out.println("Received status code " + response.getStatusLine().getStatusCode() + " from server");
+            }
+            
+	        response.close();
+	        httpClient.close();
+		} catch (Exception e) {
+			System.out.println(e);
+			return null;
+		} 
+		
+		return jsonObject;
+	}
+	
+	
 	public MsgKeyPair lookupKey(String recipient) {
 		MsgKeyPair result = null;
 		
-		JSONObject jsonObject = makeGetToServer(KEYLOOKUP_PATH);
-        String keyData = (String) jsonObject.get("title");
+		JSONObject jsonObject = makeGetToServer(KEYLOOKUP_PATH + "/" + recipient);
+        String keyData = (String) jsonObject.get("keyData");
         keyData = keyData.trim();
-        System.out.println(keyData);
-            	
+        //System.out.println(keyData);
+        
+        // TODO: add last modification time
+        
         // Attempt to parse the key blob back into a MsgKeyPair
         try {
         	if (keyData != null && keyData.isEmpty() == false) {
@@ -125,7 +171,7 @@ public class ServerConnection {
 		ArrayList<EncryptedMessage> result = new ArrayList<EncryptedMessage>();
 		
 		// TODO, need to specify requestor ID here!
-		JSONObject jsonObject = makeGetToServer(MESSAGELOOKUP_PATH);
+		JSONObject jsonObject = makeGetToServer(MESSAGELOOKUP_PATH + "/" + mUsername);
 		if (jsonObject == null) {
 			return null;
 		}
@@ -133,8 +179,9 @@ public class ServerConnection {
 		try {
 			long numMessages = (long) jsonObject.get("numMessages");
 			if (numMessages <= 0) {
-				return null;
+				return result;
 			}
+			System.out.println("Messages Recieved: " + numMessages);
 
 			JSONArray msg = (JSONArray) jsonObject.get("messages");
 			Iterator<JSONObject> iterator = msg.iterator();
@@ -146,7 +193,7 @@ public class ServerConnection {
 				String fromID = (String) nextMessage.get("senderID");
 			
 				if (encryptedMessage != null) {
-					if (encryptedMessage.trim().isEmpty() == false) {		
+					if (encryptedMessage.trim().isEmpty() == false) {
 						EncryptedMessage eMsg = new EncryptedMessage(fromID.trim(), mUsername.trim(), 
 								encryptedMessage.trim(), sentTime, messageID);
 						result.add(eMsg);
@@ -163,19 +210,30 @@ public class ServerConnection {
 	}
 	
 	public boolean registerKey(String encodedKey) {		
-		// TODO: Actually send the key to the server somehow right here!
-		
-		JSONObject jsonObject = makeGetToServer(KEYREGISTER_PATH);
+		// build up post data for key registration
+		boolean result = false;
+		String keyData = "{\"keyData\": \"" + encodedKey + "\"}";
+		JSONObject jsonObject = makePostToServer(KEYREGISTER_PATH + "/" + mUsername, keyData);
         if (jsonObject == null) {
         	System.out.println("Key registration failed.");
+        } else {
+	        result = (boolean) jsonObject.get("result");
+	        
+	        if (result) {
+	        	System.out.println("Successfully registered a new public key for '" + mUsername + "'.");
+	        }
         }
-        
-        // TODO: placeholder until this routine is fixed
-        return false;
+        return result;
 	}
 	
-	public void sendEncryptedMessage(String recipient, String encryptedMessage) {
-		// TODO
+	public boolean sendEncryptedMessage(String recipient, String encryptedMessage) {
+		String messageDetails = "{\"recipient\": \"" + recipient + "\", \"message\": \"" + encryptedMessage + "\"}";		
+		JSONObject jsonObject = makePostToServer(SENDMESSAGE_PATH + "/" + mUsername, messageDetails);
+		if (jsonObject == null) {
+			System.out.println("Failed to send encrypted message.");
+		}
+		
+		return true;
 	}
 	
 	public void shutDown() {
