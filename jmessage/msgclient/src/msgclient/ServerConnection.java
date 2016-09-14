@@ -147,9 +147,7 @@ public class ServerConnection {
         String keyData = (String) jsonObject.get("keyData");
         keyData = keyData.trim();
         //System.out.println(keyData);
-        
-        // TODO: add last modification time
-        
+                
         // Attempt to parse the key blob back into a MsgKeyPair
         try {
         	if (keyData != null && keyData.isEmpty() == false) {

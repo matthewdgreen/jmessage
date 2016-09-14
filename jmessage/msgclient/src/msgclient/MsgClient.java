@@ -268,9 +268,9 @@ public class MsgClient {
 			System.out.println("Encryption self-test failed.");
 		}
 		
-		
-//			// Register our public keys
-//			registerKeys(false);
+		// JAA: this seems to register a new key every time the client is launched.
+		// Register our public keys
+		registerKeys(false);
 		
 		// All tests and registration complete
 		System.out.println("Server connection successful. Type (h)elp for commands.");
