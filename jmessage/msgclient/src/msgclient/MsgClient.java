@@ -24,6 +24,7 @@ public class MsgClient {
 	
 	static final int DEFAULT_PORT = 8000;
 	static final String DEFAULT_PASSWORD = "";
+	static final String READRECEIPT_MESSAGE = ">>>READMESSAGE";
 	
 	String	serverName;
 	int		serverPort;
@@ -31,6 +32,7 @@ public class MsgClient {
 	String	serverPassword;
 	MessageEncryptor mEncryptor;
 	ServerConnection mServerConnection;
+	long mCurrentMessageID = 0;
 	
 	Scanner scanner;
 	
@@ -96,11 +98,40 @@ public class MsgClient {
 		System.out.println("   q(uit)               - exits");
 	}
 	
-	public void printMessage(long sentTime, String senderID, String decryptedText) {
-		System.out.println("From: " + senderID);
-		System.out.println("Time: " + sentTime);
-		System.out.println(decryptedText);
+	public boolean isReadReceipt(String messageText) {
+		if (messageText.startsWith(READRECEIPT_MESSAGE) == true) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	public void sendReadReceipt(String receiverID, long msgID) {
+		// First look up the recipient's public key on the server
+		MsgKeyPair recipientKey = mServerConnection.lookupKey(receiverID);
+		if (recipientKey == null) {
+			return;
+		}
+		
+		String readMessage = READRECEIPT_MESSAGE + " " + msgID;
+		String encryptedMessage = mEncryptor.encryptMessage(readMessage, recipientKey);
+		
+		if (encryptedMessage == null) {
+			System.out.println("Error sending read receipt.");
+		} else {
+			// Send the encrypted message
+			mServerConnection.sendEncryptedMessage(receiverID, mCurrentMessageID++, encryptedMessage);
+		}
+	}
+	
+	public void printMessage(long sentTime, long msgID, String senderID, String decryptedText) {
+		java.util.Date time = new java.util.Date(sentTime * 1000);
+		
 		System.out.println("");
+		System.out.println("Message ID: " + msgID);
+		System.out.println("From: " + senderID);
+		System.out.println("Time: " + time);
+		System.out.println(decryptedText);
 	}
 	
 	// Get messages from the server
@@ -128,11 +159,19 @@ public class MsgClient {
 				if (senderKey != null) {
 					String decryptedText = mEncryptor.decryptMessage(nextMessage.getMessageText(), 
 						nextMessage.getSenderID(), senderKey);
-						printMessage(nextMessage.getSentTime(), nextMessage.getSenderID(), decryptedText);
-				} else {
+					
+					if (decryptedText != null) {
+						if (isReadReceipt(decryptedText) == false) {
+							printMessage(nextMessage.getSentTime(), nextMessage.getMessageID(), nextMessage.getSenderID(), decryptedText);
+							sendReadReceipt(nextMessage.getSenderID(), nextMessage.getMessageID());
+						}
+					}
+				} else {				
 					System.out.println("Could not get keys for " + nextMessage.getSenderID());
 				}
 			}
+			
+			System.out.println("");
 		}
 	}
 	
@@ -153,16 +192,13 @@ public class MsgClient {
 		if (message.isEmpty() == true) {
 			System.out.println("Message canceled.");
 		} else {
-			// Print out the message just as a test
-			System.out.println("Sending the message: " + message);
-			
 			// Encrypt the message to the recipient
 			String encryptedMessage = mEncryptor.encryptMessage(message, recipientKey);
 			if (encryptedMessage == null) {
 				System.out.println("Error encrypting message.");
 			} else {
 				// Send the encrypted message
-				boolean result = mServerConnection.sendEncryptedMessage(recipient, encryptedMessage);
+				boolean result = mServerConnection.sendEncryptedMessage(recipient, mCurrentMessageID++, encryptedMessage);
 				
 				if (result) {
 					System.out.println("Message sent.");
@@ -197,15 +233,24 @@ public class MsgClient {
 	}
 	
 	// Generates a MsgKeyPair, registers it with server
-	public void registerKeys(boolean regenerate) throws Exception {
-		// Regenerate our key pair if we're asked to
-		if (regenerate == true) {
-			System.out.println("Generating a new keypair...");
-			mEncryptor.regenerateKeys();
+	public boolean registerKeys(boolean regenerate) {
+		boolean success = false;
+		
+		try {
+			// Regenerate our key pair if we're asked to
+			if (regenerate == true) {
+				System.out.println("Generating a new keypair...");
+				mEncryptor.regenerateKeys();
+			}
+		
+			// Send the public keys to the server
+			success = mServerConnection.registerKey(mEncryptor.getEncodedPublicKeys());
+		} catch (Exception e) {
+			System.out.println("Register keys, failed with: " + e);
+			return false;
 		}
 		
-		// Send the public keys to the server
-		mServerConnection.registerKey(mEncryptor.getEncodedPublicKeys());
+		return success;
 	}
 	
 	public void mainLoop() throws Exception {
@@ -242,7 +287,9 @@ public class MsgClient {
 			} else if (parsedString[0].startsWith("q")) {
 				running = false;
 			} else if (parsedString[0].startsWith("genkeys")) {
-				registerKeys(true);
+				if (registerKeys(true) == false) {
+					System.out.println("Error: could not register new keypair");
+				}
 			}
 			
 			//System.out.println(command);
@@ -270,7 +317,11 @@ public class MsgClient {
 		
 		// JAA: this seems to register a new key every time the client is launched.
 		// Register our public keys
-		registerKeys(false);
+		if (registerKeys(false) == false) {
+			// Key registration failed
+			System.out.println("Could not contact server to register keys. Exiting.");
+			System.exit(1);
+		}
 		
 		// All tests and registration complete
 		System.out.println("Server connection successful. Type (h)elp for commands.");

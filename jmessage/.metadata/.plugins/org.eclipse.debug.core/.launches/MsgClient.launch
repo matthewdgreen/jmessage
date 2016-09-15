@@ -8,6 +8,6 @@
 </listAttribute>
 <booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_START_ON_FIRST_THREAD" value="true"/>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="msgclient.MsgClient"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-s localhost -p 8000 -u foobar -p hello"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-s localhost -p 80 -u foobar -p hello"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="msgclient"/>
 </launchConfiguration>

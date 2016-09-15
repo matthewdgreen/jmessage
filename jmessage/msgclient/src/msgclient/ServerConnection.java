@@ -79,7 +79,7 @@ public class ServerConnection {
 			        .build();
 	        HttpGet httpget = new HttpGet(uri);
 	        httpget.addHeader("accept", "application/json");
-	        System.out.println(httpget.getURI());
+	        //System.out.println(httpget.getURI());
 
 	        response = httpClient.execute(httpget);
             if (response.getStatusLine().getStatusCode() == 200) {           
@@ -114,7 +114,7 @@ public class ServerConnection {
 			        .setPath(path)
 			        .build();
 			HttpPost httppost = new HttpPost(uri);
-	        System.out.println(httppost.getURI());
+	        //System.out.println(httppost.getURI());
 	        StringEntity entity = new StringEntity(json_data, ContentType.create("plain/text", "UTF-8"));
 	        entity.setContentType("application/json");
 	        httppost.setEntity(entity);
@@ -179,7 +179,7 @@ public class ServerConnection {
 			if (numMessages <= 0) {
 				return result;
 			}
-			System.out.println("Messages Recieved: " + numMessages);
+			//System.out.println("Messages Recieved: " + numMessages);
 
 			JSONArray msg = (JSONArray) jsonObject.get("messages");
 			Iterator<JSONObject> iterator = msg.iterator();
@@ -224,8 +224,8 @@ public class ServerConnection {
         return result;
 	}
 	
-	public boolean sendEncryptedMessage(String recipient, String encryptedMessage) {
-		String messageDetails = "{\"recipient\": \"" + recipient + "\", \"message\": \"" + encryptedMessage + "\"}";		
+	public boolean sendEncryptedMessage(String recipient, long messageID, String encryptedMessage) {
+		String messageDetails = "{\"recipient\": \"" + recipient + "\", \"messageID\": \"" + messageID + "\", \"message\": \"" + encryptedMessage + "\"}";		
 		JSONObject jsonObject = makePostToServer(SENDMESSAGE_PATH + "/" + mUsername, messageDetails);
 		if (jsonObject == null) {
 			System.out.println("Failed to send encrypted message.");
