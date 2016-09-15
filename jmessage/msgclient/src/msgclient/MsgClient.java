@@ -93,6 +93,7 @@ public class MsgClient {
 		System.out.println("   get (or empty line)  - check for new messages");
 		System.out.println("   c(ompose) <user>     - compose a message to <user>");
 		System.out.println("   f(ingerprint) <user> - return the key fingerprint of <user>");
+		System.out.println("   l(ist)               - lists all the users in the system");
 		System.out.println("   genkeys              - generates and registers a fresh keypair");
 		System.out.println("   h(elp)               - prints this listing");
 		System.out.println("   q(uit)               - exits");
@@ -173,6 +174,27 @@ public class MsgClient {
 			
 			System.out.println("");
 		}
+	}
+
+	// List existing users in the server
+	public void listUsers() throws Exception {
+		System.out.println("Getting list of user IDs from server...");
+
+		ArrayList<String> users = mServerConnection.lookupUsers();
+		if (users == null) {
+			System.out.println("Could not reach the server");
+			return;
+		} else if (users.isEmpty()) {
+			System.out.println("No users yet");
+			return;
+		}
+
+		// Display the list of users
+		for(int i = 0; i < users.size(); i++) {
+			System.out.println(i + ":" + users.get(i));
+		}
+		System.out.println("");
+		return;
 	}
 	
 	// Compose a new message
@@ -280,9 +302,10 @@ public class MsgClient {
 					printFingerprint(parsedString[1]);
 				} else {
 					printFingerprint("");
-				}	
-			}
-			else if (parsedString[0].startsWith("h") || parsedString[0].startsWith("?")) {
+				}
+			} else if (parsedString[0].startsWith("l")) {
+				listUsers();
+			} else if (parsedString[0].startsWith("h") || parsedString[0].startsWith("?")) {
 				printHelp();
 			} else if (parsedString[0].startsWith("q")) {
 				running = false;
