@@ -43,6 +43,7 @@ import java.util.*;
 public class ServerConnection {
 
 	static final String PROTOCOL_TYPE = "http";
+	static final String USERLOOKUP_PATH = "/lookupUsers";
 	static final String KEYLOOKUP_PATH = "/lookupKey";
 	static final String MESSAGELOOKUP_PATH = "/getMessages";
 	static final String KEYREGISTER_PATH = "/registerKey";
@@ -139,6 +140,33 @@ public class ServerConnection {
 		return jsonObject;
 	}
 	
+	public ArrayList<String> lookupUsers() {
+		ArrayList<String> result = new ArrayList<String>();
+
+		JSONObject jsonObject = makeGetToServer(USERLOOKUP_PATH);
+		if (jsonObject == null) {
+			return null;
+		}
+
+		try {
+			long numUsers = (long) jsonObject.get("numUsers");
+			if (numUsers <= 0) {
+				return result;
+			}
+
+			JSONArray users = (JSONArray) jsonObject.get("users");
+			Iterator<String> iterator = users.iterator();
+			while (iterator.hasNext()) {
+				String nextUser = iterator.next();
+				result.add(nextUser);
+			}
+		} catch (Exception e) {
+			// Some kind of problem
+			return null;
+		}
+
+		return result;
+	}
 	
 	public MsgKeyPair lookupKey(String recipient) {
 		MsgKeyPair result = null;
@@ -168,7 +196,6 @@ public class ServerConnection {
 	public ArrayList<EncryptedMessage> lookupMessages() {
 		ArrayList<EncryptedMessage> result = new ArrayList<EncryptedMessage>();
 		
-		// TODO, need to specify requestor ID here!
 		JSONObject jsonObject = makeGetToServer(MESSAGELOOKUP_PATH + "/" + mUsername);
 		if (jsonObject == null) {
 			return null;
@@ -179,7 +206,6 @@ public class ServerConnection {
 			if (numMessages <= 0) {
 				return result;
 			}
-			//System.out.println("Messages Recieved: " + numMessages);
 
 			JSONArray msg = (JSONArray) jsonObject.get("messages");
 			Iterator<JSONObject> iterator = msg.iterator();
@@ -218,7 +244,7 @@ public class ServerConnection {
 	        result = (boolean) jsonObject.get("result");
 	        
 	        if (result) {
-	        	System.out.println("Successfully registered a new public key for '" + mUsername + "'.");
+	        	System.out.println("Successfully registered a public key for '" + mUsername + "'.");
 	        }
         }
         return result;
