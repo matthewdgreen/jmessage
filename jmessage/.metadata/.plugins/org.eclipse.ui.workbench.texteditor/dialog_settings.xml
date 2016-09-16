@@ -2,20 +2,20 @@
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
 		<item value="false" key="isRegEx"/>
-		<item value="mPendingMessages.add" key="selection"/>
+		<item value="thread" key="selection"/>
 		<item value="false" key="casesensitive"/>
 		<item value="false" key="incremental"/>
 		<item value="true" key="wrap"/>
 		<item value="false" key="wholeword"/>
 		<list key="findhistory">
+			<item value="threadtrtrue"/>
+			<item value="thread"/>
 			<item value="mPendingMessages.add"/>
 			<item value="No new messages {"/>
 			<item value="No new messages"/>
 			<item value="shutting down"/>
 			<item value="No new"/>
 			<item value="Getting messages"/>
-			<item value="getMessages"/>
-			<item value="ArrayList"/>
 		</list>
 		<list key="replacehistory">
 			<item value="MsgKeyPair"/>
