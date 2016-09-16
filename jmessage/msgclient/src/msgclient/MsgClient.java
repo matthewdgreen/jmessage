@@ -32,9 +32,15 @@ public class MsgClient {
 	String	serverPassword;
 	MessageEncryptor mEncryptor;
 	ServerConnection mServerConnection;
-	long mCurrentMessageID = 0;
+	ArrayList<Message> mPendingMessages;
+	Thread 	mCheckerThread = null;
+	long	mCurrentMessageID = 0;
 	
 	Scanner scanner;
+	
+	public MsgClient() {
+		mPendingMessages = new ArrayList<Message>();
+	}
 	
 	public void parseArguments(String[] args) throws Exception {
     	// Parse command line arguments
@@ -124,20 +130,38 @@ public class MsgClient {
 		}
 	}
 	
-	public void printMessage(long sentTime, long msgID, String senderID, String decryptedText) {
-		java.util.Date time = new java.util.Date(sentTime * 1000);
+	public void printMessage(Message message) {
+		java.util.Date time = new java.util.Date(message.getSentTime() * 1000);
 		
 		System.out.println("");
-		System.out.println("Message ID: " + msgID);
-		System.out.println("From: " + senderID);
+		System.out.println("Message ID: " + message.getMessageID());
+		System.out.println("From: " + message.getSenderID());
 		System.out.println("Time: " + time);
-		System.out.println(decryptedText);
+		System.out.println(message.getMessageText());
 	}
 	
-	// Get messages from the server
-	public void getMessages() throws Exception {
-		System.out.println("Getting messages from server...");
+	// Print pending messages
+	public void printMessages() throws Exception {	
+		synchronized(mPendingMessages) {
+			if (mPendingMessages.isEmpty()) {
+				System.out.println("No new messages.");
+			} else {
+				Iterator<Message> iterator = mPendingMessages.iterator();
 		
+				while (iterator.hasNext()) {
+					Message nextMessage = iterator.next();
+				
+					printMessage(nextMessage);
+				}
+		
+				// Clear the array
+				mPendingMessages.clear();
+			}
+		}
+	}
+	
+	// Get messages from the server, store them in mPendingMessages
+	public void getMessages() throws Exception {		
 		// Call the server to get recent mail
 		ArrayList<EncryptedMessage> messages = mServerConnection.lookupMessages();
 		
@@ -154,6 +178,8 @@ public class MsgClient {
 			while (iterator.hasNext()) {
 				EncryptedMessage nextMessage = iterator.next();
 				
+				System.out.println("Received an encrypted message");
+				
 				// We need to get the sender's public key
 				MsgKeyPair senderKey = mServerConnection.lookupKey(nextMessage.getSenderID());
 				if (senderKey != null) {
@@ -162,7 +188,19 @@ public class MsgClient {
 					
 					if (decryptedText != null) {
 						if (isReadReceipt(decryptedText) == false) {
-							printMessage(nextMessage.getSentTime(), nextMessage.getMessageID(), nextMessage.getSenderID(), decryptedText);
+							// Add the decrypted message to our pending messages list
+							Message newMessage = new Message(nextMessage.getSenderID(), 
+									nextMessage.getReceiverID(), decryptedText,
+									nextMessage.getSentTime(), nextMessage.getMessageID());
+							
+							// Make sure we don't mess with the object thread locks,
+							// since the mPendingMessages member can be accessed by
+							// a different thread.
+							synchronized (mPendingMessages) {
+								mPendingMessages.add(newMessage);
+								System.out.println("Got a message!");
+							}
+
 							sendReadReceipt(nextMessage.getSenderID(), nextMessage.getMessageID());
 						}
 					}
@@ -171,7 +209,6 @@ public class MsgClient {
 				}
 			}
 			
-			System.out.println("");
 		}
 	}
 	
@@ -267,7 +304,7 @@ public class MsgClient {
 			
 			// Check input
 			if (command.isEmpty() || parsedString[0].equals("get")) {
-				getMessages();
+				printMessages();
 			}
 			else if (parsedString[0].startsWith("c")) {
 				if (parsedString.length > 1) {
@@ -326,9 +363,20 @@ public class MsgClient {
 		// All tests and registration complete
 		System.out.println("Server connection successful. Type (h)elp for commands.");
 		
-		// With a server connection, start the main loop
+		// With a server connection, launch the background message checking thread
+		MessageChecker checkerRunnable = new MessageChecker(this);
+		mCheckerThread = new Thread(checkerRunnable);
+		mCheckerThread.start();
+		   
+		// Start the main "UI" command entry loop
 		mainLoop();
 		
+		// Shut down the messaging checking thread
+    	if (mCheckerThread != null) {
+    		checkerRunnable.terminate();
+    		mCheckerThread.join();
+    	}
+    	
 		// Shut down the connection to the server
 		mServerConnection.shutDown();
 	}
@@ -342,7 +390,7 @@ public class MsgClient {
     	// Run the client
     	msgClient.runClient();
     	
-        // The end
+    	// We're done
         System.out.println("Shutting down...");
     }
     
