@@ -172,13 +172,13 @@ public class MsgClient {
 		
 		// Decrypt and process each message
 		if (messages == null || messages.isEmpty()) {
-			System.out.println("No new messages.");
+			//System.out.println("No new messages.");
 		} else {
 			Iterator<EncryptedMessage> iterator = messages.iterator();
 			while (iterator.hasNext()) {
 				EncryptedMessage nextMessage = iterator.next();
 				
-				System.out.println("Received an encrypted message");
+				//System.out.println("Received an encrypted message");
 				
 				// We need to get the sender's public key
 				MsgKeyPair senderKey = mServerConnection.lookupKey(nextMessage.getSenderID());
@@ -198,14 +198,14 @@ public class MsgClient {
 							// a different thread.
 							synchronized (mPendingMessages) {
 								mPendingMessages.add(newMessage);
-								System.out.println("Got a message!");
+								//System.out.println("Got a message!");
 							}
 
 							sendReadReceipt(nextMessage.getSenderID(), nextMessage.getMessageID());
 						}
 					}
 				} else {				
-					System.out.println("Could not get keys for " + nextMessage.getSenderID());
+					//System.out.println("Could not get keys for " + nextMessage.getSenderID());
 				}
 			}
 			
@@ -366,6 +366,7 @@ public class MsgClient {
 		// With a server connection, launch the background message checking thread
 		MessageChecker checkerRunnable = new MessageChecker(this);
 		mCheckerThread = new Thread(checkerRunnable);
+		mCheckerThread.setDaemon(true);
 		mCheckerThread.start();
 		   
 		// Start the main "UI" command entry loop
