@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
+	<item value="filter_imports;" key="filters_last_used"/>
 	<section name="FatJarPackageWizard">
 		<item value="/Users/mgreen/src2/jmessage/jmessage" key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION"/>
 		<item value="MsgClient - msgclient" key="FatJarPackageWizardPage.LAUNCH_CONFIGURATION_SELECTION_NAME"/>
-		<item value="/Users/mgreen/src2/jmessage/jmessageJAR.jar" key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION"/>
+		<item value="/Users/mgreen/src2/jmessage/jmessage.jar" key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION"/>
 		<item value="false" key="FatJarPackageWizardPage.ANTSCRIPT_SAVE"/>
 		<item value="2" key="FatJarPackageWizardPage.LIBRARY_HANDLING"/>
 		<list key="FatJarPackageWizardPage.DESTINATION_NAMES_ID">
+			<item value="/Users/mgreen/src2/jmessage/jmessage.jar"/>
 			<item value="/Users/mgreen/src2/jmessage/jmessageJAR.jar"/>
 		</list>
 		<list key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION_HISTORY">

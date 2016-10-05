@@ -57,7 +57,7 @@ public class MessageEncryptor {
 	// Steps are:
 	// 1. Concatenate sender ID : message string, encode as UTF-8
 	// 2. Encrypt with random 128-bit AES key K to get C2
-	// 3. Encrypt K with RSA-OAEP under sender's key to get C1
+	// 3. Encrypt K with RSA under sender's key to get C1
 	// 4. Encode C1, C2 as Base64, compute C' = B64(C1) || " " || B64(C2)
 	// 5. Compute a DSA signature S on concatenation C'
 	// 6. Output C1 || " " || C2 || " " || S
@@ -91,7 +91,7 @@ public class MessageEncryptor {
 	    // Now encrypt the AES key using the sender's RSA key
 	    Cipher rsaCipher;
 	    try {
-	    	rsaCipher = Cipher.getInstance("RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING");
+	    	rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 		    rsaCipher.init(Cipher.ENCRYPT_MODE, recipientKey.getRSAPublicKey(), new SecureRandom());
 		    rsaCiphertext = rsaCipher.doFinal(rawAESkey);
 	    } catch (Exception e) {
@@ -103,7 +103,7 @@ public class MessageEncryptor {
 	    Cipher aesCipher;
 	    try {
 	    	// Initialize AES with the key
-	    	aesCipher = Cipher.getInstance("AES/CTR/NoPadding");
+	    	aesCipher = Cipher.getInstance("AES/CTR/PKCS5Padding");
 	        byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	        IvParameterSpec ivspec = new IvParameterSpec(iv);
 	    	aesCipher.init(Cipher.ENCRYPT_MODE, aesKey, ivspec);
@@ -122,7 +122,12 @@ public class MessageEncryptor {
 	        plaintextStream.write(Arrays.copyOfRange(buffer.array(), 4, buffer.array().length));
 	        
 	        // AES encrypt the resulting buffer
-	        aesCiphertext = aesCipher.doFinal(plaintextStream.toByteArray());
+	        byte[] aesCiphertextWithoutIV = aesCipher.doFinal(plaintextStream.toByteArray());
+	        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+	        outputStream.write( iv );
+	        outputStream.write( aesCiphertextWithoutIV );
+
+	        aesCiphertext = outputStream.toByteArray();
 	    } catch (Exception e) {
 			return null; 
 		}
@@ -195,7 +200,7 @@ public class MessageEncryptor {
 	    // Now encrypt the AES key using the sender's RSA key
 	    Cipher rsaCipher;
 	    try {
-	    	rsaCipher = Cipher.getInstance("RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING");
+	    	rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 		    rsaCipher.init(Cipher.DECRYPT_MODE, mOurKeys.getRSAPrivateKey());
 			byte[] decodedRSACiphertext = Base64.getDecoder().decode(parsedString[0]);
 		    aesKey = rsaCipher.doFinal(decodedRSACiphertext);
@@ -212,16 +217,19 @@ public class MessageEncryptor {
 	    // and decrypt the payload
 	    Cipher aesCipher;
 	    try {
+	    	// Decode AES ciphertext
+			byte[] decodedAESCiphertext = Base64.getDecoder().decode(parsedString[1]);
+			
 	    	// Initialize AES with the key
 	    	SecretKeySpec aesKeySpec = new SecretKeySpec(aesKey, "AES");
-	        byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	        byte[] iv = Arrays.copyOfRange(decodedAESCiphertext, 0, 16);
+	        byte[] actualCiphertext = Arrays.copyOfRange(decodedAESCiphertext, 16, decodedAESCiphertext.length);
 	        IvParameterSpec ivspec = new IvParameterSpec(iv);
-	    	aesCipher = Cipher.getInstance("AES/CTR/NoPadding");
+	    	aesCipher = Cipher.getInstance("AES/CTR/PKCS5Padding");
 	    	aesCipher.init(Cipher.DECRYPT_MODE, aesKeySpec, ivspec);
 	    	
 	        // AES decrypt the ciphertext buffer
-			byte[] decodedAESCiphertext = Base64.getDecoder().decode(parsedString[1]);
-	        aesPlaintext = aesCipher.doFinal(decodedAESCiphertext);   	
+	        aesPlaintext = aesCipher.doFinal(actualCiphertext);   	
 	    } catch (Exception e) {
 			return null; 
 		}
