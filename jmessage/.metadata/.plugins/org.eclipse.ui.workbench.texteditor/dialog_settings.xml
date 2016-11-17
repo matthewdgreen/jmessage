@@ -2,20 +2,20 @@
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
 		<item value="false" key="isRegEx"/>
-		<item value="SENDMESSAGE_PATH" key="selection"/>
+		<item value="CRC" key="selection"/>
 		<item value="false" key="casesensitive"/>
 		<item value="false" key="incremental"/>
 		<item value="true" key="wrap"/>
 		<item value="false" key="wholeword"/>
 		<list key="findhistory">
-			<item value="SENDMESSAGE_PATH"/>
-			<item value="sendMessage"/>
-			<item value="copyofrange"/>
-			<item value="encryptMessage"/>
-			<item value="decryptMessage"/>
-			<item value="IvParameterSpec"/>
-			<item value="IV"/>
-			<item value="computeFingerprint"/>
+			<item value="CRC"/>
+			<item value="60000"/>
+			<item value="mPeer"/>
+			<item value="m"/>
+			<item value="mPeerIdentifier"/>
+			<item value="mPeerIdentifier.isEmpty"/>
+			<item value="isEmpty"/>
+			<item value="mainLoop"/>
 		</list>
 		<list key="replacehistory">
 			<item value="MsgKeyPair"/>
@@ -25,7 +25,7 @@
 		<item value="290" key="DIALOG_WIDTH"/>
 		<item value="1|.Helvetica Neue DeskInterface|11.0|0|COCOA|1|.HelveticaNeueDeskInterface-Regular" key="DIALOG_FONT_NAME"/>
 		<item value="409" key="DIALOG_HEIGHT"/>
-		<item value="0" key="DIALOG_X_ORIGIN"/>
-		<item value="202" key="DIALOG_Y_ORIGIN"/>
+		<item value="925" key="DIALOG_X_ORIGIN"/>
+		<item value="98" key="DIALOG_Y_ORIGIN"/>
 	</section>
 </section>

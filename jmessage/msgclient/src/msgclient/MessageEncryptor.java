@@ -30,6 +30,7 @@ public class MessageEncryptor {
 
 	static final String CIPHERTEXT_DELIMITER = " ";
 	static final String SENDERID_DELIMITER = ":";
+	static int AES_BLOCKSIZE = 16;
 	
 	MsgKeyPair mOurKeys;
 	String mSenderID;
@@ -103,7 +104,7 @@ public class MessageEncryptor {
 	    Cipher aesCipher;
 	    try {
 	    	// Initialize AES with the key
-	    	aesCipher = Cipher.getInstance("AES/CTR/PKCS5Padding");
+	    	aesCipher = Cipher.getInstance("AES/CTR/NoPadding");
 	        byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	        IvParameterSpec ivspec = new IvParameterSpec(iv);
 	    	aesCipher.init(Cipher.ENCRYPT_MODE, aesKey, ivspec);
@@ -120,6 +121,12 @@ public class MessageEncryptor {
 	        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
 	        buffer.putLong(crcVal);
 	        plaintextStream.write(Arrays.copyOfRange(buffer.array(), 4, buffer.array().length));
+	        
+	        // Manually add padding
+	        int paddingLen = AES_BLOCKSIZE - (plaintextStream.size() % AES_BLOCKSIZE);
+	        for (int i = 0; i < paddingLen; i++) {
+	        	plaintextStream.write(paddingLen);
+	        }
 	        
 	        // AES encrypt the resulting buffer
 	        byte[] aesCiphertextWithoutIV = aesCipher.doFinal(plaintextStream.toByteArray());
@@ -225,11 +232,32 @@ public class MessageEncryptor {
 	        byte[] iv = Arrays.copyOfRange(decodedAESCiphertext, 0, 16);
 	        byte[] actualCiphertext = Arrays.copyOfRange(decodedAESCiphertext, 16, decodedAESCiphertext.length);
 	        IvParameterSpec ivspec = new IvParameterSpec(iv);
-	    	aesCipher = Cipher.getInstance("AES/CTR/PKCS5Padding");
+	    	aesCipher = Cipher.getInstance("AES/CTR/NoPadding");
 	    	aesCipher.init(Cipher.DECRYPT_MODE, aesKeySpec, ivspec);
 	    	
 	        // AES decrypt the ciphertext buffer
-	        aesPlaintext = aesCipher.doFinal(actualCiphertext);   	
+	        aesPlaintext = aesCipher.doFinal(actualCiphertext);   
+	        
+	        // Remove the PKCS7 padding
+	        if (aesPlaintext.length >= AES_BLOCKSIZE) {
+	        	int paddingLen = aesPlaintext[aesPlaintext.length - 1];
+	        	if (paddingLen < 0 || paddingLen > AES_BLOCKSIZE) {
+	        		return null;
+	        	}
+	        	
+	        	for (int i = 0; i < paddingLen; i++) {
+	        		if (aesPlaintext[(aesPlaintext.length - 1) - i] != paddingLen) {
+	        			// Bad padding
+	        			return null;
+	        		}
+	        	}
+	        	
+	        	// Padding checks out -- remove it
+	        	aesPlaintext = Arrays.copyOfRange(aesPlaintext, 0, (aesPlaintext.length) - paddingLen);
+	        } else {
+	        	// Error: plaintext too small
+	        	return null;
+	        }
 	    } catch (Exception e) {
 			return null; 
 		}

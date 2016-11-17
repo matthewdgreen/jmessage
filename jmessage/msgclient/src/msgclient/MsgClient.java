@@ -30,6 +30,7 @@ public class MsgClient {
 	int		serverPort;
 	String	serverUsername;
 	String	serverPassword;
+	String  mPeerIdentifier;
 	MessageEncryptor mEncryptor;
 	ServerConnection mServerConnection;
 	ArrayList<Message> mPendingMessages;
@@ -61,6 +62,10 @@ public class MsgClient {
         Option password = new Option("w", "password", false, "password (default is none)");
         password.setRequired(false);
         options.addOption(password);
+        
+        Option peerIdentifier = new Option("m", "peer identifier", true, "peer identifier (default is none)");
+        peerIdentifier.setRequired(false);
+        options.addOption(peerIdentifier);
 
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -83,10 +88,16 @@ public class MsgClient {
         	serverPort = DEFAULT_PORT;
         }
         
-        if (cmd.hasOption("p") == true) {
-        	serverPassword = cmd.getOptionValue("p");
+        if (cmd.hasOption("w") == true) {
+        	serverPassword = cmd.getOptionValue("w");
         } else {
         	serverPassword = "";
+        }
+        
+        if (cmd.hasOption("m") == true) {
+        	mPeerIdentifier = cmd.getOptionValue("m");
+        } else {
+        	mPeerIdentifier = "";
         }
         
         // Required arguments
@@ -234,6 +245,34 @@ public class MsgClient {
 		return;
 	}
 	
+	// Send a new message without UI interaction
+	public boolean transmitMessage(String recipient, String message) throws Exception {
+		
+		// First look up the recipient's public key on the server
+		MsgKeyPair recipientKey = mServerConnection.lookupKey(recipient);
+		if (recipientKey == null) {
+			System.out.println("Could not find a key for user " + recipient);
+			return false;
+		}
+		
+		String encryptedMessage = mEncryptor.encryptMessage(message, recipientKey);
+		if (encryptedMessage == null) {
+			System.out.println("Error encrypting message.");
+			return false;
+		} else {
+			// Send the encrypted message
+			boolean result = mServerConnection.sendEncryptedMessage(recipient, mCurrentMessageID++, encryptedMessage);
+				
+			if (result) {
+				System.out.println("Message sent.");
+			} else {
+				System.out.println("Failed to send.");
+			}
+			
+			return result;
+		} 
+	}
+	
 	// Compose a new message
 	public void composeMessage(String recipient) throws Exception {
 		
@@ -310,6 +349,19 @@ public class MsgClient {
 		}
 		
 		return success;
+	}
+	
+	public String constructMessage(String peerIdentifier) {
+		return "Hey " + peerIdentifier + ", what do you think about 09 F9 11 02 9D 74 E3 5B D8 41 56 C5 63 56 88 C0?";
+	}
+	
+	public void automaticLoop() throws Exception {
+		boolean running = true;
+
+		while (running) {
+			Thread.sleep(20000);
+			transmitMessage(mPeerIdentifier, constructMessage(mPeerIdentifier));	
+		}
 	}
 	
 	public void mainLoop() throws Exception {
@@ -393,8 +445,11 @@ public class MsgClient {
 		mCheckerThread.start();
 		   
 		// Start the main "UI" command entry loop
-		mainLoop();
-		
+		if (mPeerIdentifier == null || mPeerIdentifier.isEmpty()) {
+			mainLoop();
+		} else {
+			automaticLoop();
+		}
 		// Shut down the messaging checking thread
     	if (mCheckerThread != null) {
     		checkerRunnable.terminate();
